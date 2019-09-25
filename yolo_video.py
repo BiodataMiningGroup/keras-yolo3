@@ -2,18 +2,26 @@ import sys
 import argparse
 from yolo import YOLO, detect_video
 from PIL import Image
+import os
 
 def detect_img(yolo):
-    while True:
-        img = input('Input image filename:')
+    images = ['777226.png', '777242.png', '777259.png', '777275.png', '777292.png', '777308.png', '783297.png', '783355.png', '783517.png', '783963.png', '784451.png', '784599.png', '786203.png', '786236.png']
+#    images = ['1.png','39.png','678.png','234.png','55.png','100.png','101.png','200.png']
+    for img in images:
+        print(os.getcwd(), img)
+#        img = input('Input image filename:')
         try:
-            image = Image.open(img)
-        except:
+#            image = Image.open(img)
+#            image = Image.open('../dummy_images/'+img)
+            image = Image.open('../plattform_unterseite1/'+img)
+        except Exception as e:
+            print(e)
             print('Open Error! Try again!')
             continue
         else:
             r_image = yolo.detect_image(image)
-            r_image.show()
+            #r_image.show()
+            r_image.save("result_image_"+img)
     yolo.close_session()
 
 FLAGS = None
@@ -25,17 +33,17 @@ if __name__ == '__main__':
     Command line options
     '''
     parser.add_argument(
-        '--model', type=str,
+        '--model_path', type=str,
         help='path to model weight file, default ' + YOLO.get_defaults("model_path")
     )
 
     parser.add_argument(
-        '--anchors', type=str,
+        '--anchors_path', type=str,
         help='path to anchor definitions, default ' + YOLO.get_defaults("anchors_path")
     )
 
     parser.add_argument(
-        '--classes', type=str,
+        '--classes_path', type=str,
         help='path to class definitions, default ' + YOLO.get_defaults("classes_path")
     )
 

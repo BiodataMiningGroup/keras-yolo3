@@ -3,6 +3,7 @@ Retrain the YOLO model for your own dataset.
 """
 
 import numpy as np
+import argparse
 import keras.backend as K
 from keras.layers import Input, Lambda
 from keras.models import Model
@@ -14,15 +15,26 @@ from yolo3.utils import get_random_data
 
 
 def _main():
-    annotation_path = 'train.txt'
-    log_dir = 'logs/000/'
-    classes_path = 'model_data/voc_classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--annotation_path', type=str, default='../dummy_annotation_file.txt')
+    parser.add_argument('--log_dir', type=str, default='logs/000/')
+    parser.add_argument('--classes_path', type=str, default='../platform_classes.txt')
+    parser.add_argument('--anchors_path', type=str, default='model_data/yolo_anchors.txt')
+    parser.add_argument('--batch_size', type=int, default=8) #TODO different batch sizes for the two training steps?
+    parser.add_argument('--input_width', type=int, default=416)
+    parser.add_argument('--input_height', type=int, default=416)
+    args = parser.parse_args()
+
+    annotation_path = args.annotation_path
+    log_dir = args.log_dir
+    classes_path = args.classes_path
+    anchors_path = args.anchors_path
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (416,416) # multiple of 32, hw
+    input_shape = (args.input_height, args.input_width) # multiple of 32, hw
 
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
@@ -54,7 +66,7 @@ def _main():
             # use custom yolo_loss Lambda layer.
             'yolo_loss': lambda y_true, y_pred: y_pred})
 
-        batch_size = 32
+        batch_size = args.batch_size
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
                 steps_per_epoch=max(1, num_train//batch_size),
@@ -73,7 +85,7 @@ def _main():
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
-        batch_size = 32 # note that more GPU memory is required after unfreezing the body
+        batch_size = args.batch_size # note that more GPU memory is required after unfreezing the body
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
             steps_per_epoch=max(1, num_train//batch_size),
