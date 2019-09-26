@@ -3,24 +3,29 @@ import argparse
 from yolo import YOLO, detect_video
 from PIL import Image
 import os
+import ast
 
-def detect_img(yolo):
-    images = ['777226.png', '777242.png', '777259.png', '777275.png', '777292.png', '777308.png', '783297.png', '783355.png', '783517.png', '783963.png', '784451.png', '784599.png', '786203.png', '786236.png']
+""" Reads a list of images from the image_list_file and passes
+    them to the network yolo for prediction.
+
+    Images are loaded from the image_directory.
+"""
+def detect_img(yolo, image_list_file, image_directory):
+    f = open(image_list_file,"r")
+    images = ast.literal_eval(f.read())
+    print(images)
+#    images = ['777226.png', '777242.png', '777259.png', '777275.png', '777292.png', '777308.png', '783297.png', '783355.png', '783517.png', '783963.png', '784451.png', '784599.png', '786203.png', '786236.png']
 #    images = ['1.png','39.png','678.png','234.png','55.png','100.png','101.png','200.png']
     for img in images:
         print(os.getcwd(), img)
-#        img = input('Input image filename:')
         try:
-#            image = Image.open(img)
-#            image = Image.open('../dummy_images/'+img)
-            image = Image.open('../plattform_unterseite1/'+img)
+            image = Image.open(image_directory+img)
         except Exception as e:
             print(e)
             print('Open Error! Try again!')
             continue
         else:
             r_image = yolo.detect_image(image)
-            #r_image.show()
             r_image.save("result_image_"+img)
     yolo.close_session()
 
@@ -53,6 +58,16 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--image_list_file', type=str,
+        #TODO help
+    )
+
+    parser.add_argument(
+        '--image_directory', type=str,
+        #TODO help
+    )
+
+    parser.add_argument(
         '--image', default=False, action="store_true",
         help='Image detection mode, will ignore all positional arguments'
     )
@@ -78,7 +93,7 @@ if __name__ == '__main__':
         print("Image detection mode")
         if "input" in FLAGS:
             print(" Ignoring remaining command line arguments: " + FLAGS.input + "," + FLAGS.output)
-        detect_img(YOLO(**vars(FLAGS)))
+        detect_img(YOLO(**vars(FLAGS)), FLAGS.image_list_file, FLAGS.image_directory)
     elif "input" in FLAGS:
         detect_video(YOLO(**vars(FLAGS)), FLAGS.input, FLAGS.output)
     else:
