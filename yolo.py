@@ -18,6 +18,7 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
+
 class YOLO(object):
     _defaults = {
         "model_path": 'logs/000/trained_weights_final.h5',
@@ -175,6 +176,7 @@ class YOLO(object):
 
 def detect_video(yolo, video_path, output_path=""):
     import cv2
+    import skvideo.io # TODO replace cv2 with skvideo
     vid = cv2.VideoCapture(video_path)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
@@ -185,16 +187,18 @@ def detect_video(yolo, video_path, output_path=""):
     isOutput = True if output_path != "" else False
     if isOutput:
         print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
-        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
+#        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
+        out = skvideo.io.FFmpegWriter(output_path)
     accum_time = 0
     curr_fps = 0
     fps = "FPS: ??"
     prev_time = timer()
-    while True:
-        return_value, frame = vid.read()
+    return_value, frame = vid.read()
+    while frame is not None:
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(frame)
-        image = yolo.detect_image(image)
-        result = np.asarray(image)
+        image, boxes, classes = yolo.detect_image(image)
+        result = np.array(image)
         curr_time = timer()
         exec_time = curr_time - prev_time
         prev_time = curr_time
@@ -204,13 +208,13 @@ def detect_video(yolo, video_path, output_path=""):
             accum_time = accum_time - 1
             fps = "FPS: " + str(curr_fps)
             curr_fps = 0
-        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(frame, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
-        cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", result)
         if isOutput:
-            out.write(result)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+#            out.write(result)
+            out.writeFrame(result)
+        return_value, frame = vid.read()
+#    out.release()
+    out.close()
     yolo.close_session()
 
